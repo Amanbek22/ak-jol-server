@@ -146,10 +146,11 @@ app.get("/orders", async (req, res) => {
         .where("miniStops", "array-contains", tour.to)
         .get();
       expressData.forEach((doc) => {
+        const s = doc.data().stops.find((el) => el.id === tour.to.id)
         half_expressData.push({
           transportId: doc.id,
           ...doc.data(),
-          price: tour.price,
+          price: s?.price || tour.price,
         });
       });
 
