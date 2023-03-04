@@ -4,11 +4,14 @@ const firebase = require("firebase-admin");
 const { getStorage } = require("firebase-admin/storage");
 const cors = require("cors");
 const express = require("express");
+const boot = require("../app.js")
+
 
 // Let's start express for API
 const app = express();
 
 // Automatically allow cross-origin requests
+app.use(express.json())
 app.use(cors());
 app.options("*", cors());
 
@@ -18,6 +21,7 @@ let db = firebase.firestore();
 const stripe = require("stripe")(
   "sk_test_51LECBfDaK9yndacRLez0GLV3GQrFzUwR8HWxnqW0cVJfPfrEaYwTG5YCw4jTD1mNVa67zLBXKMbLWw1C1n4tl3JU00QfgLbL3U"
 );
+
 
 /** Create a payment link for
  * :product Any string as a product name
@@ -59,6 +63,31 @@ app.all("/paymentlink/:product/:amount/:currency", async (req, res) => {
   });
   res.send(paymentLink);
 });
+
+
+app.post("/paymentinit", async (req, res) => {
+
+  const additional = {
+    tourStartDate: req.body.tourStartDate,
+    places: req.body.places,
+    schedule: req.body.schedule,
+    time: req.body.time,
+    tourId: req.body.tourId,
+    transportId: req.body.transportId,
+    userId: req.body.userId,
+    amount: req.body.amount,
+    description: req.body.description
+  }
+
+  const result = await boot(additional);
+
+  res.json(result);
+});
+
+
+app.get("/", async (req, res) => {
+  res.json('hello pidaras');
+})
 
 /** Create a payment link for
  * :product Any string as a product name
@@ -220,4 +249,8 @@ app.get("/orders", async (req, res) => {
 });
 
 // Public APIs through Express: https://us-central1-nfttrx.cloudfunctions.net/v1
-exports.v1 = functions.https.onRequest(app);
+// exports.v1 = functions.https.onRequest(app);
+
+app.listen(3000, () => {
+  console.log(`Example app listening on port 3000`)
+})
