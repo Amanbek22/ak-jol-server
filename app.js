@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto')
 const FormData = require('form-data');
 const xml2js = require('xml2js');
+const { v4: uuidv4 } = require('uuid');
 
 
 module.exports = async function boot(additional) {
@@ -17,7 +18,7 @@ module.exports = async function boot(additional) {
   }
   
   const initPaymentData = {
-    pg_order_id: 3, // Идентификатор платежа в системе мерчанта. Рекомендуется поддерживать уникальность этого поля.
+    pg_order_id: uuidv4(), // Идентификатор платежа в системе мерчанта. Рекомендуется поддерживать уникальность этого поля.
     pg_merchant_id: env.paybox_merchant_id, // Идентификатор мерчанта в FreedomPay Выдается при подключении.
     pg_amount: amount, // Сумма платежа в валюте pg_currency.
     pg_description: description, // Описание товара или услуги. Отображается покупателю в процессе платежа.
