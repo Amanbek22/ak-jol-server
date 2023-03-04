@@ -12,6 +12,7 @@ const app = express();
 
 // Automatically allow cross-origin requests
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(cors());
 app.options("*", cors());
 
@@ -82,6 +83,32 @@ app.post("/paymentinit", async (req, res) => {
   const result = await boot(additional);
 
   res.json(result);
+});
+
+
+// На этот ендпойт будет приходить запрос от paybox. Это наш вебхук. Пример https://localhost:3000/webhook/payment-result
+// Мы здесь получаем данные в req.body. Все нужные данные я уже достал тут. Нужно теперь просто записать их в firbase.
+// Когда задеплойим, от vercel мы получим домен https://{domen}/webhook/payment-result. 
+// Этот домен нужно дать мне. Я его пропишу в настройки paybox. 
+app.post("/webhook/payment-result", async (req, res) => { 
+
+  const { 
+    pg_order_id, 
+    pg_payment_id, 
+    pg_amount, 
+    pg_currency, 
+    pg_description, 
+    tourStartDate,
+    places,
+    schedule,
+    time,
+    tourId,
+    transportId,
+    userId
+  } = req.body
+
+  res.json(200);
+
 });
 
 
