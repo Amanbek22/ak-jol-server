@@ -14,7 +14,7 @@ module.exports = async function boot(additional) {
     paybox_url: 'https://api.freedompay.money/init_payment.php', // Базовый url для API(По умолчанию https://api.freedompay.money)
     paybox_merchant_id: '548469', // ID магазина на стороне FreedomPay
     paybox_merchant_secret: 'cJXMfnuxLWnF4MnJ', // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
-    result_url: '', // result_url
+    result_url: 'https://webhook.site/e24d78a4-8415-449f-9977-4775084ff613', // result_url
   }
   
   const initPaymentData = {
@@ -23,6 +23,7 @@ module.exports = async function boot(additional) {
     pg_amount: amount, // Сумма платежа в валюте pg_currency.
     pg_description: description, // Описание товара или услуги. Отображается покупателю в процессе платежа.
     pg_salt: 'some random string',
+    pg_result_url: env.result_url,
     ...other
   }
 
