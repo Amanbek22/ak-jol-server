@@ -276,8 +276,8 @@ app.get("/orders", async (req, res) => {
 });
 
 // Public APIs through Express: https://us-central1-nfttrx.cloudfunctions.net/v1
-// exports.v1 = functions.https.onRequest(app);
+exports.v1 = functions.https.onRequest(app);
 
-app.listen(3000, () => {
-  console.log(`Example app listening on port 3000`)
-})
+// app.listen(3000, () => {
+//   console.log(`Example app listening on port 3000`)
+// })
