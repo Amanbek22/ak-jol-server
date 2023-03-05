@@ -9,6 +9,7 @@ const crypto = require('crypto')
 const FormData = require('form-data');
 const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
+const e = require("express");
 
 // Let's start express for API
 const app = express();
@@ -33,7 +34,7 @@ async function boot(additional) {
     paybox_url: 'https://api.freedompay.money/init_payment.php', // Базовый url для API(По умолчанию https://api.freedompay.money)
     paybox_merchant_id: '548469', // ID магазина на стороне FreedomPay
     paybox_merchant_secret: 'cJXMfnuxLWnF4MnJ', // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
-    result_url: 'https://webhook.site/e24d78a4-8415-449f-9977-4775084ff613', // result_url
+    result_url: 'https://us-central1-ak-jol.cloudfunctions.net/v1/webhook/payment-result', // result_url
   }
   
   const initPaymentData = {
@@ -43,6 +44,8 @@ async function boot(additional) {
     pg_description: description, // Описание товара или услуги. Отображается покупателю в процессе платежа.
     pg_salt: 'some random string',
     pg_result_url: env.result_url,
+    pg_success_url: '',
+    pg_failure_url: '',
     ...other
   }
 
@@ -94,28 +97,6 @@ async function boot(additional) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 app.post("/paymentinit", async (req, res) => {
   const additional = {
     tourStartDate: req.body.tourStartDate,
@@ -127,6 +108,7 @@ app.post("/paymentinit", async (req, res) => {
     userId: req.body.userId,
     amount: req.body.amount,
     description: req.body.description,
+    orderId: req.body?.orderId,
   };
 
   const result = await boot(additional);
@@ -152,7 +134,11 @@ app.post("/webhook/payment-result", async (req, res) => {
     tourId,
     transportId,
     userId,
+    orderId,
   } = req.body;
+
+  console.log('=======135==========>', res.body);
+
 
   res.json({
     pg_order_id,
@@ -167,6 +153,7 @@ app.post("/webhook/payment-result", async (req, res) => {
     tourId,
     transportId,
     userId,
+    orderId,
   });
 });
 
@@ -278,7 +265,7 @@ app.get("/orders", async (req, res) => {
         .where("schedule", "==", q.date)
         .get();
       orderSnap.forEach((doc) => {
-        orderData.push(doc.data());
+        orderData.push({orderId: doc.id,...doc.data()});
       });
 
       // half_expressData
@@ -310,6 +297,7 @@ app.get("/orders", async (req, res) => {
               ...item,
               placesCount: placesCount,
               places: el.places,
+              orderId: el.orderId,
               orderExist: true,
             };
           }
