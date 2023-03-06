@@ -120,6 +120,24 @@ app.post("/paymentinit", async (req, res) => {
 // Мы здесь получаем данные в req.body. Все нужные данные я уже достал тут. Нужно теперь просто записать их в firbase.
 // Когда задеплойим, от vercel мы получим домен https://{domen}/webhook/payment-result.
 // Этот домен нужно дать мне. Я его пропишу в настройки paybox.
+const placesConst = {
+  1: false, 
+  2: false,
+  3: false,
+  4: false,
+  5: false,
+  6: false,
+  7: false,
+  8: false,
+  9: false,
+  11: false,
+  12: false,
+  13: false,
+  14: false,
+  15: false,
+  16: false,
+  17: false,
+}
 app.post("/webhook/payment-result", async (req, res) => {
   const {
     pg_order_id,
@@ -137,7 +155,45 @@ app.post("/webhook/payment-result", async (req, res) => {
     orderId,
   } = req.body;
 
-  console.log('=======135==========>', res.body);
+  const addChecks = async () => {
+    db.collection('userOrders').add(req.body)
+  }
+
+  console.log('=======135==========>', req.body);
+
+  const selectedPlaces = places.split(',');
+  console.log(selectedPlaces);
+  if(orderId) {
+
+    const currentOrderRef = await db.collection("orders").doc(orderId).get();
+    const currentOrder = currentOrderRef.data();
+    const orderPlaces = currentOrder.places;
+
+    selectedPlaces.forEach((el) => {
+      if(orderPlaces[el] === false) {
+        orderPlaces[el] = req.body;
+      }
+    })
+    console.log('===========174========>', orderPlaces);
+    db.collection('orders').doc(orderId).update({places: orderPlaces})
+    addChecks()
+  } else {
+    selectedPlaces.forEach((el) => {
+      if(placesConst[el] === false) {
+        placesConst[el] = req.body;
+      }
+    })
+
+    db.collection('orders').add({
+      date: tourStartDate,
+      time,
+      tourId,
+      transportId,
+      schedule,
+      places: placesConst
+    })
+    addChecks()
+  }
 
 
   res.json({
@@ -157,76 +213,6 @@ app.post("/webhook/payment-result", async (req, res) => {
   });
 });
 
-/** Create a payment link for
- * :product Any string as a product name
- * :amount in cents (like 200 for 2)
- * :currency like eur or gbp
- * Examples:
- * GET https://us-central1-nfttrx.cloudfunctions.net/v1/price/NFT%20purchase/10000/gbp
- * POST https://us-central1-nfttrx.cloudfunctions.net/v1/price/
- *  with args 	"product":"Idea NFT ID#123456"
- *		 		"amount":"200000"
- *		 		"currency":"eur"
- * Returns:
- * Stripe's payment price object
- * https://stripe.com/docs/api/prices/object
- */
-//
-//
-app.all("/price/:product/:amount/:currency", async (req, res) => {
-  let productName = req.params.product;
-  let amount = +req.params.amount;
-  let currency = req.params.currency;
-  const stripeProduct = await stripe.products.create({
-    name: productName,
-  });
-  const price = await stripe.prices.create({
-    unit_amount: amount,
-    currency: currency,
-    product: stripeProduct.id,
-  });
-  res.send(price);
-});
-
-// GET https://us-central1-nfttrx.cloudfunctions.net/v1/stripehook
-app.all("/freedomhook", async (req, res) => {
-  const todayAsTimestamp = firebase.firestore.Timestamp.now();
-  console.log("Freedom webhook", req.method, todayAsTimestamp);
-  let obj = {
-    ...req.params,
-    ...req.query,
-    ...req.body,
-    webhook_timestamp: todayAsTimestamp,
-  };
-  db.collection("Stripe").doc().set(obj);
-  let metadata = obj.data.object.metadata;
-  const Users = db.collection("Users");
-  const UserItems = db.collection("UserItems");
-  if (metadata && metadata.itemID) {
-    UserItems.doc(metadata.itemID)
-      .update({ ownerUid: metadata.toID, author: metadata.author })
-      .then(() => {
-        changeItemsCount(Users, UserItems, metadata);
-        console.log(
-          "Successfully made a record for " +
-            metadata.itemID +
-            " setting new owner to " +
-            metadata.toID
-        );
-      })
-      .catch((e) => {
-        console.log(
-          "Error for a record " +
-            metadata.itemID +
-            " and new owner " +
-            metadata.toID
-        );
-      });
-  } else {
-    console.log("Metadata were incomplete", safeJsonStringify(metadata));
-  }
-  res.send(new Date() + "");
-});
 
 app.get("/orders", async (req, res) => {
   const q = req.query;
