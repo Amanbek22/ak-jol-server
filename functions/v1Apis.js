@@ -4,11 +4,11 @@ const firebase = require("firebase-admin");
 const { getStorage } = require("firebase-admin/storage");
 const cors = require("cors");
 const express = require("express");
-const axios = require('axios');
-const crypto = require('crypto')
-const FormData = require('form-data');
-const xml2js = require('xml2js');
-const { v4: uuidv4 } = require('uuid');
+const axios = require("axios");
+const crypto = require("crypto");
+const FormData = require("form-data");
+const xml2js = require("xml2js");
+const { v4: uuidv4 } = require("uuid");
 const e = require("express");
 
 // Let's start express for API
@@ -23,79 +23,79 @@ app.options("*", cors());
 // The var represents firestore db
 let db = firebase.firestore();
 
-
-
 async function boot(additional) {
-  console.log('init payment');
+  console.log("init payment");
 
   const { amount, description, ...other } = additional;
 
   const env = {
-    paybox_url: 'https://api.freedompay.money/init_payment.php', // Базовый url для API(По умолчанию https://api.freedompay.money)
-    paybox_merchant_id: '548469', // ID магазина на стороне FreedomPay
-    paybox_merchant_secret: 'cJXMfnuxLWnF4MnJ', // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
-    result_url: 'https://us-central1-ak-jol.cloudfunctions.net/v1/webhook/payment-result', // result_url
-  }
-  
+    paybox_url: "https://api.freedompay.money/init_payment.php", // Базовый url для API(По умолчанию https://api.freedompay.money)
+    paybox_merchant_id: "548469", // ID магазина на стороне FreedomPay
+    paybox_merchant_secret: "cJXMfnuxLWnF4MnJ", // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
+    result_url:
+      "https://us-central1-ak-jol.cloudfunctions.net/v1/webhook/payment-result", // result_url
+  };
+
   const initPaymentData = {
     pg_order_id: uuidv4(), // Идентификатор платежа в системе мерчанта. Рекомендуется поддерживать уникальность этого поля.
     pg_merchant_id: env.paybox_merchant_id, // Идентификатор мерчанта в FreedomPay Выдается при подключении.
     pg_amount: amount, // Сумма платежа в валюте pg_currency.
     pg_description: description, // Описание товара или услуги. Отображается покупателю в процессе платежа.
-    pg_salt: 'some random string',
+    pg_salt: "some random string",
     pg_result_url: env.result_url,
-    pg_success_url: '',
-    pg_failure_url: '',
-    ...other
-  }
+    pg_success_url: "",
+    pg_failure_url: "",
+    ...other,
+  };
 
   function sortObjectKeysAlphabetically(obj) {
     const keys = Object.keys(obj).sort();
     const sortedObj = {};
-    
+
     for (let key of keys) {
       sortedObj[key] = obj[key];
     }
-    
+
     return sortedObj;
   }
-  
-  
+
   const sortedObj = sortObjectKeysAlphabetically(initPaymentData);
   const convertedToArr = Object.values(sortedObj);
-  
-  convertedToArr.unshift('init_payment.php');
+
+  convertedToArr.unshift("init_payment.php");
   convertedToArr.push(env.paybox_merchant_secret);
-  
-  initPaymentData.pg_sig = crypto.createHash('md5').update(convertedToArr.join(';')).digest("hex")
-  
+
+  initPaymentData.pg_sig = crypto
+    .createHash("md5")
+    .update(convertedToArr.join(";"))
+    .digest("hex");
+
   const formData = new FormData();
-  
+
   for (const key in initPaymentData) {
     formData.append(key, initPaymentData[key]);
   }
 
   const result = await axios.post(env.paybox_url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
-  console.log(initPaymentData)
+  console.log(initPaymentData);
 
   let resultObj;
 
-  xml2js.parseString(result.data, function(err, result) {
-      if (err) {
-        resultObj = err;
-      } else {
-        resultObj = result
-      }
+  xml2js.parseString(result.data, function (err, result) {
+    if (err) {
+      resultObj = err;
+    } else {
+      resultObj = result;
+    }
   });
 
   return resultObj;
 }
-
 
 app.post("/paymentinit", async (req, res) => {
   const additional = {
@@ -109,10 +109,13 @@ app.post("/paymentinit", async (req, res) => {
     amount: req.body.amount,
     description: req.body.description,
     orderId: req.body?.orderId,
+    fromCity: req.body?.fromCity,
+    toCity: req.body?.toCity,
+    transportNumber: req.body?.transportNumber,
   };
 
   const result = await boot(additional);
-  console.log("RESULT=========57========>",result);
+  console.log("RESULT=========57========>", result);
   res.json(result);
 });
 
@@ -121,7 +124,7 @@ app.post("/paymentinit", async (req, res) => {
 // Когда задеплойим, от vercel мы получим домен https://{domen}/webhook/payment-result.
 // Этот домен нужно дать мне. Я его пропишу в настройки paybox.
 const placesConst = {
-  1: false, 
+  1: false,
   2: false,
   3: false,
   4: false,
@@ -130,6 +133,7 @@ const placesConst = {
   7: false,
   8: false,
   9: false,
+  10: false,
   11: false,
   12: false,
   13: false,
@@ -137,7 +141,7 @@ const placesConst = {
   15: false,
   16: false,
   17: false,
-}
+};
 app.post("/webhook/payment-result", async (req, res) => {
   const {
     pg_order_id,
@@ -145,56 +149,54 @@ app.post("/webhook/payment-result", async (req, res) => {
     pg_amount,
     pg_currency,
     pg_description,
-    tourStartDate,
-    places,
-    schedule,
-    time,
-    tourId,
-    transportId,
+    tourStartDate, //
+    places, //
+    schedule, //
+    time, //
+    tourId, //
+    transportId, //
     userId,
-    orderId,
+    orderId, //
   } = req.body;
 
   const addChecks = async () => {
-    db.collection('userOrders').add(req.body)
-  }
+    db.collection("userOrders").add(req.body);
+  };
 
-  console.log('=======135==========>', req.body);
+  console.log("=======135==========>", req.body);
 
-  const selectedPlaces = places.split(',');
+  const selectedPlaces = places.split(",");
   console.log(selectedPlaces);
-  if(orderId) {
-
+  if (orderId) {
     const currentOrderRef = await db.collection("orders").doc(orderId).get();
     const currentOrder = currentOrderRef.data();
     const orderPlaces = currentOrder.places;
 
     selectedPlaces.forEach((el) => {
-      if(orderPlaces[el] === false) {
+      if (orderPlaces[el] === false) {
         orderPlaces[el] = req.body;
       }
-    })
-    console.log('===========174========>', orderPlaces);
-    db.collection('orders').doc(orderId).update({places: orderPlaces})
-    addChecks()
+    });
+    console.log("===========174========>", orderPlaces);
+    db.collection("orders").doc(orderId).update({ places: orderPlaces });
+    addChecks();
   } else {
     selectedPlaces.forEach((el) => {
-      if(placesConst[el] === false) {
+      if (placesConst[el] === false) {
         placesConst[el] = req.body;
       }
-    })
+    });
 
-    db.collection('orders').add({
+    db.collection("orders").add({
       date: tourStartDate,
       time,
       tourId,
       transportId,
       schedule,
-      places: placesConst
-    })
-    addChecks()
+      places: placesConst,
+    });
+    addChecks();
   }
-
 
   res.json({
     pg_order_id,
@@ -213,29 +215,41 @@ app.post("/webhook/payment-result", async (req, res) => {
   });
 });
 
+const findStopPrice = (tour, stop) => {
+  if(tour.stops?.length) {
+    const s = tour.stops.filter((el) => el.id === stop)
+    if(s.length) {
+      return s[0].price
+    }
+  }
+  return tour.price
+}
 
+// query = tourId & date & places & stop & multy
 app.get("/orders", async (req, res) => {
   const q = req.query;
   try {
     if (q.tourId && q.date) {
+      const secondData = [];
+      if (q.multy) {
+        const tourRef = await db.collection("tours").doc(q.multy).get();
+        const tour = tourRef.data();
+        console.log("TOOOOOOOOOUR==========>", tourRef.id, tour.from.id);
+        const snap = await db
+          .collection("transports")
+          .where("tourId", "==", q.multy)
+          .get();
+        snap.forEach((doc) => {
+          secondData.push({
+            transportId: doc.id,
+            ...doc.data(),
+            price: findStopPrice(tour, q.stop),
+          });
+        });
+      }
       const tourRef = await db.collection("tours").doc(q.tourId).get();
       const tour = tourRef.data();
       console.log("TOOOOOOOOOUR==========>", tourRef.id, tour.from.id);
-      const half_expressData = [];
-      const expressData = await db
-        .collection("transports")
-        .where("type", "==", "half_express")
-        .where("fromId", "==", tour.from.id)
-        .where("miniStops", "array-contains", tour.to)
-        .get();
-      expressData.forEach((doc) => {
-        const s = doc.data().stops.find((el) => el.id === tour.to.id);
-        half_expressData.push({
-          transportId: doc.id,
-          ...doc.data(),
-          price: s?.price || tour.price,
-        });
-      });
 
       let data = [];
       const snap = await db
@@ -243,7 +257,7 @@ app.get("/orders", async (req, res) => {
         .where("tourId", "==", q.tourId)
         .get();
       snap.forEach((doc) => {
-        data.push({ transportId: doc.id, ...doc.data(), price: tour.price });
+        data.push({ transportId: doc.id, ...doc.data(), price: findStopPrice(tour, q.stop) });
       });
       const orderData = [];
       const orderSnap = await db
@@ -251,23 +265,18 @@ app.get("/orders", async (req, res) => {
         .where("schedule", "==", q.date)
         .get();
       orderSnap.forEach((doc) => {
-        orderData.push({orderId: doc.id,...doc.data()});
+        orderData.push({ orderId: doc.id, ...doc.data() });
       });
 
-      // half_expressData
-      // data
-      // orderData
-
-      if (half_expressData.length) {
-        if (!data.length) {
-          data = half_expressData;
-        } else if (data.length) {
-          data = [...data, ...half_expressData];
+      const newData = [...data, ...secondData].map((el) => {
+        if(q.stop) {
+          const findstop = el.stops 
         }
-      }
+        return el
+      }); 
 
       if (orderData.length) {
-        const newTransports = data.map((item) => {
+        const newTransports = newData.map((item) => {
           const el = orderData.find(
             (order) => order.transportId === item.transportId
           );
@@ -295,7 +304,7 @@ app.get("/orders", async (req, res) => {
         res.json(result);
       } else {
         res.json(
-          data.map((item) => ({ ...item, placesCount: 17, orderExist: false }))
+          newData.map((item) => ({ ...item, placesCount: 17, orderExist: false }))
         );
       }
     } else {
