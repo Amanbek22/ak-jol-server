@@ -30,8 +30,8 @@ async function boot(additional) {
 
   const env = {
     paybox_url: "https://api.freedompay.money/init_payment.php", // Базовый url для API(По умолчанию https://api.freedompay.money)
-    paybox_merchant_id: "548469", // ID магазина на стороне FreedomPay
-    paybox_merchant_secret: "cJXMfnuxLWnF4MnJ", // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
+    paybox_merchant_id: "549075", // ID магазина на стороне FreedomPay
+    paybox_merchant_secret: "twScclpHcIv12qLV", // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
     result_url:
       "https://us-central1-ak-jol.cloudfunctions.net/v1/webhook/payment-result", // result_url
   };
