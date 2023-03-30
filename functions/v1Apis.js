@@ -244,6 +244,7 @@ app.get("/orders", async (req, res) => {
             transportId: doc.id,
             ...doc.data(),
             price: findStopPrice(tour, q.stop),
+            stops: tour.stops,
           });
         });
       }
@@ -257,7 +258,7 @@ app.get("/orders", async (req, res) => {
         .where("tourId", "==", q.tourId)
         .get();
       snap.forEach((doc) => {
-        data.push({ transportId: doc.id, ...doc.data(), price: findStopPrice(tour, q.stop) });
+        data.push({ transportId: doc.id, ...doc.data(), price: findStopPrice(tour, q.stop), stops: tour.stops });
       });
       const orderData = [];
       const orderSnap = await db
