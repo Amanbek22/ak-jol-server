@@ -157,13 +157,17 @@ app.post("/webhook/payment-result", async (req, res) => {
     transportId, //
     userId,
     orderId, //
+    pg_failure_code,
   } = req.body;
 
-  const addChecks = async () => {
-    db.collection("userOrders").add(req.body);
+  const addChecks = async (name) => {
+    db.collection("userOrders").add({...req.body, userName: name});
   };
 
+  if(pg_failure_code) return null
   console.log("=======135==========>", req.body);
+  const userRef = await db.collection("users").doc(userId).get();
+  const userData = userRef.data()
 
   const selectedPlaces = places.split(",");
   console.log(selectedPlaces);
@@ -174,16 +178,16 @@ app.post("/webhook/payment-result", async (req, res) => {
 
     selectedPlaces.forEach((el) => {
       if (orderPlaces[el] === false) {
-        orderPlaces[el] = req.body;
+        orderPlaces[el] = {...req.body, userName: userData.name};
       }
     });
     console.log("===========174========>", orderPlaces);
     db.collection("orders").doc(orderId).update({ places: orderPlaces });
-    addChecks();
+    addChecks(userData.name);
   } else {
     selectedPlaces.forEach((el) => {
       if (placesConst[el] === false) {
-        placesConst[el] = req.body;
+        placesConst[el] = {...req.body, userName: userData.name};
       }
     });
 
@@ -195,7 +199,7 @@ app.post("/webhook/payment-result", async (req, res) => {
       schedule,
       places: placesConst,
     });
-    addChecks();
+    addChecks(userData.name);
   }
 
   res.json({
