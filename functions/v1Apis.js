@@ -160,8 +160,8 @@ app.post("/webhook/payment-result", async (req, res) => {
     pg_failure_code,
   } = req.body;
 
-  const addChecks = async (name) => {
-    db.collection("userOrders").add({...req.body, userName: name});
+  const addChecks = async (name, id) => {
+    db.collection("userOrders").add({...req.body, userName: name, orderId: id});
   };
 
   if(pg_failure_code) return null
@@ -183,7 +183,7 @@ app.post("/webhook/payment-result", async (req, res) => {
     });
     console.log("===========174========>", orderPlaces);
     db.collection("orders").doc(orderId).update({ places: orderPlaces });
-    addChecks(userData.name);
+    addChecks(userData.name, orderId);
   } else {
     selectedPlaces.forEach((el) => {
       if (placesConst[el] === false) {
@@ -198,8 +198,9 @@ app.post("/webhook/payment-result", async (req, res) => {
       transportId,
       schedule,
       places: placesConst,
-    });
-    addChecks(userData.name);
+    }).then((res) => {
+      addChecks(userData.name, res.id);
+    })
   }
 
   res.json({
