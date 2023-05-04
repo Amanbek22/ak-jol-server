@@ -158,17 +158,29 @@ app.post("/webhook/payment-result", async (req, res) => {
     userId,
     orderId, //
     pg_failure_code,
-    isAdminCreat
+    isAdminCreat,
+    pg_payment_date,
   } = req.body;
+  const start =
+    schedule +
+    "T" +
+    (time.split(":")[0].length === 1 ? "0" : "") +
+    time +
+    (time.split(":")[1].length === 1 ? "0" : "") +
+    ":00Z";
 
   const addChecks = async (name, id) => {
-    db.collection("userOrders").add({...req.body, userName: name, orderId: id});
+    return await db
+      .collection("userOrders")
+      .add({ ...req.body, userName: name, orderId: id, tourStartDate: tourStartDate || start });
   };
 
-  if(pg_failure_code) return null
+  if (pg_failure_code) return null;
   console.log("=======135==========>", req.body);
-  const userRef = isAdminCreat ? {data: () => ""} : await db.collection("users").doc(userId).get();
-  const userData = userRef?.data()
+  const userRef = isAdminCreat
+    ? { data: () => "" }
+    : await db.collection("users").doc(userId).get();
+  const userData = userRef?.data();
 
   const selectedPlaces = places.split(",");
   console.log(selectedPlaces);
@@ -179,29 +191,32 @@ app.post("/webhook/payment-result", async (req, res) => {
 
     selectedPlaces.forEach((el) => {
       if (orderPlaces[el] === false) {
-        orderPlaces[el] = {...req.body, userName: userData?.name || ''};
+        orderPlaces[el] = { ...req.body, userName: userData?.name || "" };
       }
     });
     console.log("===========174========>", orderPlaces);
-    db.collection("orders").doc(orderId).update({ places: orderPlaces });
-    addChecks(userData?.name || '', orderId);
+    await db.collection("orders").doc(orderId).update({ places: orderPlaces });
+    await addChecks(userData?.name || "", orderId);
   } else {
     selectedPlaces.forEach((el) => {
       if (placesConst[el] === false) {
-        placesConst[el] = {...req.body, userName: userData?.name || ''};
+        placesConst[el] = { ...req.body, userName: userData?.name || "" };
       }
     });
 
-    db.collection("orders").add({
-      date: tourStartDate,
+    const date = tourStartDate ? tourStartDate : start;
+
+    const res = await db.collection("orders").add({
+      date: date,
+      dateStart: start,
       time,
       tourId,
       transportId,
       schedule,
       places: placesConst,
-    }).then((res) => {
-      addChecks(userData?.name || '', res.id);
-    })
+      createdAt: pg_payment_date,
+    });
+    await addChecks(userData?.name || "", res.id);
   }
 
   res.json({
@@ -222,14 +237,14 @@ app.post("/webhook/payment-result", async (req, res) => {
 });
 
 const findStopPrice = (tour, stop) => {
-  if(tour.stops?.length) {
-    const s = tour.stops.filter((el) => el.id === stop)
-    if(s.length) {
-      return s[0].price
+  if (tour.stops?.length) {
+    const s = tour.stops.filter((el) => el.id === stop);
+    if (s.length) {
+      return s[0].price;
     }
   }
-  return tour.price
-}
+  return tour.price;
+};
 
 // query = tourId & date & places & stop & multy
 app.get("/orders", async (req, res) => {
@@ -264,7 +279,12 @@ app.get("/orders", async (req, res) => {
         .where("tourId", "==", q.tourId)
         .get();
       snap.forEach((doc) => {
-        data.push({ transportId: doc.id, ...doc.data(), price: findStopPrice(tour, q.stop), stops: tour.stops });
+        data.push({
+          transportId: doc.id,
+          ...doc.data(),
+          price: findStopPrice(tour, q.stop),
+          stops: tour.stops,
+        });
       });
       const orderData = [];
       const orderSnap = await db
@@ -276,11 +296,11 @@ app.get("/orders", async (req, res) => {
       });
 
       const newData = [...data, ...secondData].map((el) => {
-        if(q.stop) {
-          const findstop = el.stops 
+        if (q.stop) {
+          const findstop = el.stops;
         }
-        return el
-      }); 
+        return el;
+      });
 
       if (orderData.length) {
         const newTransports = newData.map((item) => {
@@ -311,7 +331,11 @@ app.get("/orders", async (req, res) => {
         res.json(result);
       } else {
         res.json(
-          newData.map((item) => ({ ...item, placesCount: 17, orderExist: false }))
+          newData.map((item) => ({
+            ...item,
+            placesCount: 17,
+            orderExist: false,
+          }))
         );
       }
     } else {
