@@ -71,7 +71,7 @@ async function boot(additional) {
     .digest("hex");
 
   const formData = new FormData();
-
+  console.log("initPaymentData== 74 ==>", initPaymentData);
   for (const key in initPaymentData) {
     formData.append(key, initPaymentData[key]);
   }
@@ -98,11 +98,12 @@ async function boot(additional) {
 }
 
 app.post("/paymentinit", async (req, res) => {
+  const time = req.body.time.split(":")[1].length === 1 ? req.body.time + '0' : req.body.time
   const additional = {
-    tourStartDate: req.body.tourStartDate,
+    tourStartDate: req.body?.tourStartDate || '',
     places: req.body.places,
     schedule: req.body.schedule,
-    time: req.body.time,
+    time: time,
     tourId: req.body.tourId,
     transportId: req.body.transportId,
     userId: req.body.userId,
@@ -113,6 +114,7 @@ app.post("/paymentinit", async (req, res) => {
     toCity: req.body?.toCity,
     transportNumber: req.body?.transportNumber,
   };
+  console.log(additional);
 
   const result = await boot(additional);
   console.log("RESULT=========57========>", result);
@@ -170,9 +172,12 @@ app.post("/webhook/payment-result", async (req, res) => {
     ":00Z";
 
   const addChecks = async (name, id) => {
-    return await db
-      .collection("userOrders")
-      .add({ ...req.body, userName: name, orderId: id, tourStartDate: tourStartDate || start });
+    return await db.collection("userOrders").add({
+      ...req.body,
+      userName: name,
+      orderId: id,
+      tourStartDate: tourStartDate || start,
+    });
   };
 
   if (pg_failure_code) return null;
