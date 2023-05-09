@@ -169,7 +169,7 @@ app.post("/webhook/payment-result", async (req, res) => {
     (time.split(":")[0].length === 1 ? "0" : "") +
     time +
     (time.split(":")[1].length === 1 ? "0" : "") +
-    ":00Z";
+    ":00.000Z";
 
   const addChecks = async (name, id) => {
     return await db.collection("userOrders").add({
