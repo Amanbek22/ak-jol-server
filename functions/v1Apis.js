@@ -189,6 +189,12 @@ app.post("/webhook/payment-result", async (req, res) => {
 
   const selectedPlaces = places.split(",");
   console.log(selectedPlaces);
+
+  if(!isAdminCreat) {
+    db.collection("users").doc(userId).update({
+      ticketsCount: userData?.ticketsCount ? userData?.ticketsCount + selectedPlaces.length : selectedPlaces.length
+    })
+  } 
   if (orderId) {
     const currentOrderRef = await db.collection("orders").doc(orderId).get();
     const currentOrder = currentOrderRef.data();
