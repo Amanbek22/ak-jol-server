@@ -259,6 +259,8 @@ const findStopPrice = (tour, stop) => {
 
 // query = tourId & date & places & stop & multy
 app.get("/orders", async (req, res) => {
+  // Если нужно не выводить заказы за какой-то период то раскоментируем код ниже
+  // res.json([]);
   const q = req.query;
   try {
     if (q.tourId && q.date) {
