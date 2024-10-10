@@ -29,7 +29,7 @@ async function boot(additional) {
   const { amount, description, ...other } = additional;
 
   const env = {
-    paybox_url: "https://api.freedompay.money/init_payment.php", // Базовый url для API(По умолчанию https://api.freedompay.money)
+    paybox_url: "https://api.freedompay.kg/init_payment.php", // Базовый url для API(По умолчанию https://api.freedompay.money)
     paybox_merchant_id: "549075", // ID магазина на стороне FreedomPay
     paybox_merchant_secret: "twScclpHcIv12qLV", // Секретный ключ(для приема платежей) магазина на стороне FreedomPay
     result_url:
@@ -261,6 +261,11 @@ const findStopPrice = (tour, stop) => {
 app.get("/orders", async (req, res) => {
   // Если нужно не выводить заказы за какой-то период то раскоментируем код ниже
   // res.json([]);
+  const config = await db.collection("config").doc("config").get();
+  const configData = config.data();
+  if (configData.isAvailable === false) {
+    res.json([]);
+  }
   const q = req.query;
   try {
     if (q.tourId && q.date) {
